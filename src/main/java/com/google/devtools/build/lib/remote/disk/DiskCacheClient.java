@@ -40,12 +40,11 @@ import com.google.devtools.build.lib.vfs.Path;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistryLite;
 import java.io.FileNotFoundException;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.channels.FileChannel;
-import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 
@@ -384,12 +383,10 @@ public class DiskCacheClient {
 
   /** Flushes a file's contents to stable storage, where the filesystem supports it. */
   private static void syncFile(Path path) throws IOException {
-    var nioPath = path.getFileSystem().getNioPath(path.asFragment());
-    if (nioPath == null) {
-      return;
-    }
-    try (FileChannel channel = FileChannel.open(nioPath, StandardOpenOption.WRITE)) {
-      channel.force(/* metaData= */ true);
+    try (InputStream in = path.getInputStream()) {
+      if (in instanceof FileInputStream fileInputStream) {
+        fileInputStream.getFD().sync();
+      }
     }
   }
 }
